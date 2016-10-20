@@ -40,6 +40,9 @@ public class PlayerMove : NetworkBehaviour {
 		{
 			Cmd_Fire();
 		}
+
+		
+
 	}
 
 	[Command]
