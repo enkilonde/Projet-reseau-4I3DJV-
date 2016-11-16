@@ -1,15 +1,24 @@
 ﻿using UnityEngine;
 using System.Collections;
-public class Menu : MonoBehaviour
+using UnityEngine.Networking;
+
+
+public class Menu : NetworkBehaviour
 {
 
 	public string ip = "169.254.17.167";
 
 	public int port = 25000;
 
-	void OnGUI()
+	public GameObject g_PlayerPrefab;
+
+	void Awake()
 	{
 		ip = Network.player.ipAddress;
+	}
+
+	void OnGUI()
+	{
 
 		//if the player is NOT connected
 		if (Network.peerType == NetworkPeerType.Disconnected)
@@ -62,14 +71,5 @@ public class Menu : MonoBehaviour
 		}//end of "if the player IS connected"
 
 	}
-
-
-
-	void OnServerInitialized()
-	{
-		Debug.Log("Connected serv");
-	}
-
-
 
 }

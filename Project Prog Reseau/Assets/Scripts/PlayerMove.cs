@@ -4,6 +4,9 @@ using UnityEngine.Networking;
 
 public class PlayerMove : NetworkBehaviour {
 
+    [SyncVar]
+    public int PlayerID = -1;
+
 	public GameObject bulletPrefab;
 	public Transform bulletSpawn;
 
@@ -14,18 +17,30 @@ public class PlayerMove : NetworkBehaviour {
 
 		GetComponent<Renderer>().material.color = Color.blue;
 
-	}
+        Respawn();
 
-	public override void OnStartClient()
+
+        Cmd_SetPlayerID();
+
+    }
+
+    [Command]
+    void Cmd_SetPlayerID()
+    {
+        PlayerID = GetComponent<NetworkIdentity>().connectionToClient.connectionId;
+    }
+
+
+    public override void OnStartClient()
 	{
 		base.OnStartClient();
 		name = "Other Player";
 
 		GetComponent<Renderer>().material.color = Color.red;
-	}
+    }
 
-	// Update is called once per frame
-	void Update ()
+    // Update is called once per frame
+    void Update ()
 	{
 		if (!isLocalPlayer) return;
 
@@ -60,5 +75,27 @@ public class PlayerMove : NetworkBehaviour {
 
 		NetworkServer.Spawn(bullet);
 	}
+
+    void OnTriggerEnter(Collider coll)
+    {
+        if(coll.tag == "Bullet")
+        {
+            GetComponent<Health>().TakeDamages(-10);
+            Cmd_DestroyBullet(coll.gameObject);
+        }
+    }
+
+    [Command]
+    void Cmd_DestroyBullet(GameObject bullet)
+    {
+        NetworkServer.Destroy(bullet);
+
+    }
+
+    public void Respawn()
+    {
+
+    }
+
 
 }
