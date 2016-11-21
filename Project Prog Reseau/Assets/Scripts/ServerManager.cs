@@ -9,22 +9,27 @@ public class ServerManager : NetworkBehaviour
 
     public SyncListInt PlayerScores = new SyncListInt();
 
+    [SyncVar] public int numberOfPlayers;
+
     Text[] playerScoresDisplay = new Text[2];
+
+    Text waitToPlay;
 
 	// Use this for initialization
 	void Awake ()
     {
         playerScoresDisplay[0] = GameObject.Find("ScorePlayer1").GetComponent<Text>();
         playerScoresDisplay[1] = GameObject.Find("ScorePlayer2").GetComponent<Text>();
-
+        waitToPlay = GameObject.Find("waitToPlay").GetComponent<Text>();
     }
 
     // Update is called once per frame
     void Update ()
     {
+        waitToPlay.enabled = numberOfPlayers <= 1;
 
 
-	}
+    }
 
 
 

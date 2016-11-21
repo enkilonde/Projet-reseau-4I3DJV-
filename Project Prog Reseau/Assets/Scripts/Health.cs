@@ -22,18 +22,16 @@ public class Health : NetworkBehaviour
 	void Update ()
     {
 
-        if (!isServer) return;
-        
-        if (Input.GetKeyDown(KeyCode.H)) TakeDamages(-10);
+        if (!isLocalPlayer) return;
 
 	}
 
-    public void TakeDamages(int Value)
+    public void TakeDamages(int Value, int OriginPLayer)
     {
         if (isServer)
         {
             currentHealth = (int)Mathf.Clamp(currentHealth + Value, 0, maxHealth);
-            if (currentHealth == 0) Death();
+            if (currentHealth == 0) Death(OriginPLayer);
         }
 
 
@@ -45,12 +43,12 @@ public class Health : NetworkBehaviour
         healthBar.sizeDelta = new Vector2(currentHealth, healthBar.sizeDelta.y);
     }
 
-    void Death()
+    void Death(int OriginPLayer)
     {
         switch (tag)
         {
             case "Player":
-                PlayerDeath();
+                PlayerDeath(OriginPLayer);
                 break;
 
             default:
@@ -59,14 +57,16 @@ public class Health : NetworkBehaviour
         }
     }
 
-    void PlayerDeath()
+    void PlayerDeath(int OriginPLayer)
     {
         GameObject[] Players = GameObject.FindGameObjectsWithTag("Player");
-        print("Death of player " + playerControllerId);
-        FindObjectOfType<ServerManager>().Cmd_AddScore(playerControllerId, 1);
+        //print("Death of player " + GetComponent<PlayerMove>().PlayerID);
+
+        FindObjectOfType<ServerManager>().Cmd_AddScore(OriginPLayer, 1);
+
         for (int i = 0; i < Players.Length; i++)
         {
-            Players[i].GetComponent<PlayerMove>().Respawn();
+            Players[i].GetComponent<PlayerMove>().Cmd_Respawn();
             Players[i].GetComponent<Health>().currentHealth = maxHealth;
         }
     }

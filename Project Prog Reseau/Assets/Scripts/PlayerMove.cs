@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using UnityEngine.Networking;
 
@@ -10,6 +11,8 @@ public class PlayerMove : NetworkBehaviour {
 	public GameObject bulletPrefab;
 	public Transform bulletSpawn;
 
+    ServerManager serverManagerScript;
+
 	public override void OnStartLocalPlayer()
 	{
 		base.OnStartLocalPlayer();
@@ -17,10 +20,9 @@ public class PlayerMove : NetworkBehaviour {
 
 		GetComponent<Renderer>().material.color = Color.blue;
 
-        Respawn();
+        
 
-
-        Cmd_SetPlayerID();
+        //if (isServer) serverManagerScript.numberOfPlayers++;
 
     }
 
@@ -30,13 +32,36 @@ public class PlayerMove : NetworkBehaviour {
         PlayerID = GetComponent<NetworkIdentity>().connectionToClient.connectionId;
     }
 
+    void Awake()
+    {
+        serverManagerScript = FindObjectOfType<ServerManager>();
+    }
+
 
     public override void OnStartClient()
 	{
 		base.OnStartClient();
 		name = "Other Player";
+        Cmd_SetPlayerID();
 
-		GetComponent<Renderer>().material.color = Color.red;
+        if (isServer)
+        {
+            serverManagerScript.numberOfPlayers++;
+
+            Rpc_Respawn();
+        }
+
+        StartCoroutine(WaitForConnection(Rpc_Respawn));
+
+
+        GetComponent<Renderer>().material.color = Color.red;
+    }
+
+    IEnumerator WaitForConnection(Action CallbackFunction)
+    {
+        while (connectionToServer == null) yield return null;
+
+        CallbackFunction();
     }
 
     // Update is called once per frame
@@ -44,6 +69,9 @@ public class PlayerMove : NetworkBehaviour {
 	{
 		if (!isLocalPlayer) return;
 
+        if (Input.GetKeyDown(KeyCode.R)) Rpc_Respawn();
+
+        if (serverManagerScript.numberOfPlayers <= 1) return;
 
 		var x = Input.GetAxis("Horizontal") * Time.deltaTime * 150.0f;
 		var z = Input.GetAxis("Vertical") * Time.deltaTime * 3.0f;
@@ -70,6 +98,8 @@ public class PlayerMove : NetworkBehaviour {
 		// Add velocity to the bullet
 		bullet.GetComponent<Rigidbody>().velocity = bullet.transform.forward * 6;
 
+        bullet.GetComponent<BulletsProperties>().OriginPlayer = PlayerID;
+
 		// Destroy the bullet after 2 seconds
 		Destroy(bullet, 2.0f);
 
@@ -80,7 +110,7 @@ public class PlayerMove : NetworkBehaviour {
     {
         if(coll.tag == "Bullet")
         {
-            GetComponent<Health>().TakeDamages(-10);
+            GetComponent<Health>().TakeDamages(-10, coll.GetComponent<BulletsProperties>().OriginPlayer);
             Cmd_DestroyBullet(coll.gameObject);
         }
     }
@@ -92,9 +122,42 @@ public class PlayerMove : NetworkBehaviour {
 
     }
 
-    public void Respawn()
+    [Command]
+    public void Cmd_Respawn()
     {
+        Rpc_Respawn();
+    }
 
+    [ClientRpc]
+    void Rpc_Respawn()
+    {
+        if (!isLocalPlayer) return;
+
+        Vector3 respawnPosition = Vector3.zero + new Vector3(1, 0, 0);
+        switch (PlayerID)
+        {
+
+            case 0:
+                respawnPosition = new Vector3(-6, 1, 4);
+                break;
+
+            case 1:
+                respawnPosition = new Vector3(6, 1, -4);
+                break;
+
+            case 2:
+                respawnPosition = new Vector3(-6, 1, -4);
+                break;
+
+            case 3:
+                respawnPosition = new Vector3(6, 1, 4);
+                break;
+
+        }
+
+        transform.position = respawnPosition;
+        transform.LookAt(new Vector3(0, transform.position.y, 0));
+        transform.Rotate(0, 0, 0);
     }
 
 
