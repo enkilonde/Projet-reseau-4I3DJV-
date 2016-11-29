@@ -106,11 +106,11 @@ public class PlayerMove : NetworkBehaviour {
 		NetworkServer.Spawn(bullet);
 	}
 
-    void OnTriggerEnter(Collider coll)
+    void OnCollisionEnter(Collision coll)
     {
-        if(coll.tag == "Bullet")
+        if(coll.gameObject.tag == "Bullet")
         {
-            GetComponent<Health>().TakeDamages(-10, coll.GetComponent<BulletsProperties>().OriginPlayer);
+            GetComponent<Health>().TakeDamages(-10, coll.gameObject.GetComponent<BulletsProperties>().OriginPlayer);
             Cmd_DestroyBullet(coll.gameObject);
         }
     }
