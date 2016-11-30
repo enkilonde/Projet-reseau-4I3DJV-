@@ -28,10 +28,18 @@ public class ServerManager : NetworkBehaviour
     {
         waitToPlay.enabled = numberOfPlayers <= 1;
 
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            Cmd_Cheat();
+        }
 
     }
 
-
+    [Command]
+    void Cmd_Cheat()
+    {
+        numberOfPlayers++;
+    }
 
     [Command]
     public void Cmd_AddScore(int playerID, int value)
