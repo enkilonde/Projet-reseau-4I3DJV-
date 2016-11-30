@@ -60,13 +60,13 @@ public class Health : NetworkBehaviour
     void PlayerDeath(int OriginPLayer)
     {
         GameObject[] Players = GameObject.FindGameObjectsWithTag("Player");
-        //print("Death of player " + GetComponent<PlayerMove>().PlayerID);
+        print("Death of player " + GetComponent<PlayerMove>().PlayerID);
 
-        FindObjectOfType<ServerManager>().Cmd_AddScore(OriginPLayer, 1);
+        FindObjectOfType<ServerManager>().AddScore(OriginPLayer - 1, 1);
 
         for (int i = 0; i < Players.Length; i++)
         {
-            Players[i].GetComponent<PlayerMove>().Cmd_Respawn();
+            Players[i].GetComponent<PlayerMove>().Rpc_Respawn();
             Players[i].GetComponent<Health>().currentHealth = maxHealth;
         }
     }

@@ -28,14 +28,14 @@ public class ServerManager : NetworkBehaviour
     {
         waitToPlay.enabled = numberOfPlayers <= 1;
 
-        if (Input.GetKeyDown(KeyCode.P))
+        if (isServer && Input.GetKeyDown(KeyCode.P))
         {
             Cmd_Cheat();
         }
+        print(numberOfPlayers);
 
     }
 
-    [Command]
     void Cmd_Cheat()
     {
         numberOfPlayers++;
@@ -45,6 +45,20 @@ public class ServerManager : NetworkBehaviour
     public void Cmd_AddScore(int playerID, int value)
     {
 
+        while (PlayerScores.Count <= playerID)
+        {
+            PlayerScores.Add(0);
+            Rpc_AddToList();
+        }
+
+        PlayerScores[playerID] += value;
+
+        Rpc_UpdateDisplays();
+    }
+
+    public void AddScore(int playerID, int value)
+    {
+        if (!isServer) return;
         while (PlayerScores.Count <= playerID)
         {
             PlayerScores.Add(0);

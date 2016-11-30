@@ -20,11 +20,23 @@ public class PlayerMove : NetworkBehaviour {
 		base.OnStartLocalPlayer();
 		name = "Local Player";
 
-        if (isServer) isPlayerAndServer = true;
+        if (isServer)
+        {
+            isPlayerAndServer = true;
+        }
 
         GetComponent<Renderer>().material.color = Color.blue;
         StartCoroutine(WaitForConnection(ClientStart, 0));
 
+
+    }
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        print("ttt");
+
+        serverManagerScript.numberOfPlayers++;
 
     }
 
@@ -44,14 +56,11 @@ public class PlayerMove : NetworkBehaviour {
 
     public override void OnStartClient()
 	{
-		base.OnStartClient();
+
+
+        base.OnStartClient();
         if (isLocalPlayer) return;
         name = "Other Player";
-
-        if (isServer)
-        {
-            serverManagerScript.numberOfPlayers++;
-        }
 
         GetComponent<Renderer>().material.color = Color.red;
     }
@@ -129,18 +138,17 @@ public class PlayerMove : NetworkBehaviour {
 
     void OnCollisionEnter(Collision coll)
     {
+        if (!isServer) return;
         if(coll.transform.tag == "Bullet")
         {
             GetComponent<Health>().TakeDamages(-10, coll.transform.GetComponent<BulletsProperties>().OriginPlayer);
-            Cmd_DestroyBullet(coll.gameObject);
+            DestroyBullet(coll.gameObject);
         }
     }
 
-    [Command]
-    void Cmd_DestroyBullet(GameObject bullet)
+    void DestroyBullet(GameObject bullet)
     {
         NetworkServer.Destroy(bullet);
-
     }
 
     [Command]
@@ -150,7 +158,7 @@ public class PlayerMove : NetworkBehaviour {
     }
 
     [ClientRpc]
-    void Rpc_Respawn()
+    public void Rpc_Respawn()
     {
         Respawn();
     }
