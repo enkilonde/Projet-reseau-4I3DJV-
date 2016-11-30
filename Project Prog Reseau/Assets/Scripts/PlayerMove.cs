@@ -32,7 +32,6 @@ public class PlayerMove : NetworkBehaviour {
     void Cmd_SetPlayerID(bool playerAndServer)
     {
         int id = connectionToClient.connectionId;
-        if (!playerAndServer) id--;
 
         PlayerID = id;
     }
@@ -128,11 +127,11 @@ public class PlayerMove : NetworkBehaviour {
 		NetworkServer.Spawn(bullet);
 	}
 
-    void OnTriggerEnter(Collider coll)
+    void OnCollisionEnter(Collision coll)
     {
-        if(coll.tag == "Bullet")
+        if(coll.transform.tag == "Bullet")
         {
-            GetComponent<Health>().TakeDamages(-10, coll.GetComponent<BulletsProperties>().OriginPlayer);
+            GetComponent<Health>().TakeDamages(-10, coll.transform.GetComponent<BulletsProperties>().OriginPlayer);
             Cmd_DestroyBullet(coll.gameObject);
         }
     }
@@ -165,7 +164,7 @@ public class PlayerMove : NetworkBehaviour {
         Vector3 respawnPosition = Vector3.zero + new Vector3(1, 0, 0);
         switch (PlayerID)
         {
-
+            case 4:
             case 0:
                 respawnPosition = new Vector3(-6, 1, 4);
                 break;
