@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 
 public class PlayerMove : NetworkBehaviour {
 
@@ -10,10 +11,19 @@ public class PlayerMove : NetworkBehaviour {
 
     bool isPlayerAndServer = false;
 
+    static bool playerAndServer = false;
+
+
 	public GameObject bulletPrefab;
 	public Transform bulletSpawn;
 
     ServerManager serverManagerScript;
+
+    float cooldownFire = 0.2f;
+    float coolDownEffective = 0;
+
+    Vector3[] respawPoints = new Vector3[4] { new Vector3(27, 1, 17), new Vector3(-27, 1, 17), new Vector3(27, 1, -17), new Vector3(-27, 1, -17) };
+
 
 	public override void OnStartLocalPlayer()
 	{
@@ -23,6 +33,8 @@ public class PlayerMove : NetworkBehaviour {
         if (isServer)
         {
             isPlayerAndServer = true;
+            playerAndServer = true;
+            serverManagerScript.serverIsPlayer = true;
         }
 
         GetComponent<Renderer>().material.color = Color.blue;
@@ -34,10 +46,9 @@ public class PlayerMove : NetworkBehaviour {
     public override void OnStartServer()
     {
         base.OnStartServer();
-        print("ttt");
-
         serverManagerScript.numberOfPlayers++;
 
+        playerAndServer = false;
     }
 
     [Command]
@@ -45,12 +56,13 @@ public class PlayerMove : NetworkBehaviour {
     {
         int id = connectionToClient.connectionId;
 
-        PlayerID = id;
+        PlayerID = id + (1 - (playerAndServer ? 0 : 1));
     }
 
     void Awake()
     {
         serverManagerScript = FindObjectOfType<ServerManager>();
+
     }
 
 
@@ -87,9 +99,12 @@ public class PlayerMove : NetworkBehaviour {
     void ClientStart()
     {
 
-        Cmd_SetPlayerID(isPlayerAndServer);
+        Cmd_SetPlayerID(serverManagerScript.serverIsPlayer);
 
         StartCoroutine(WaitToBeIdentified(Respawn));
+        StartCoroutine(WaitToBeIdentified(AttributeScoreColor));
+
+
     }
 
     // Update is called once per frame
@@ -102,16 +117,19 @@ public class PlayerMove : NetworkBehaviour {
         if (serverManagerScript.numberOfPlayers <= 1) return;
 
 		var x = Input.GetAxis("Horizontal") * Time.deltaTime * 150.0f;
-		var z = Input.GetAxis("Vertical") * Time.deltaTime * 150;
+		var z = Input.GetAxis("Vertical") * Time.deltaTime * 300;
 
 		transform.Rotate(0, x, 0);
         //transform.Translate(0, 0, z);
 
         GetComponent<Rigidbody>().velocity = transform.forward * z;
 
-		if (Input.GetKeyDown(KeyCode.Space))
+        coolDownEffective -= Time.deltaTime;
+
+		if (Input.GetKey(KeyCode.Space) && coolDownEffective <=0)
 		{
 			Cmd_Fire();
+            coolDownEffective = cooldownFire;
 		}
 
 		
@@ -126,12 +144,12 @@ public class PlayerMove : NetworkBehaviour {
 		bullet.transform.rotation = bulletSpawn.rotation;
 
 		// Add velocity to the bullet
-		bullet.GetComponent<Rigidbody>().velocity = bullet.transform.forward * 6;
+		bullet.GetComponent<Rigidbody>().velocity = bullet.transform.forward * 10;
 
         bullet.GetComponent<BulletsProperties>().OriginPlayer = PlayerID;
 
 		// Destroy the bullet after 2 seconds
-		Destroy(bullet, 2.0f);
+		Destroy(bullet, 6.0f);
 
 		NetworkServer.Spawn(bullet);
 	}
@@ -141,7 +159,9 @@ public class PlayerMove : NetworkBehaviour {
         if (!isServer) return;
         if(coll.transform.tag == "Bullet")
         {
-            GetComponent<Health>().TakeDamages(-10, coll.transform.GetComponent<BulletsProperties>().OriginPlayer);
+            int damages = 10;
+            if (coll.transform.GetComponent<BulletsProperties>().OriginPlayer == PlayerID) damages = 5;
+            GetComponent<Health>().TakeDamages(-damages, coll.transform.GetComponent<BulletsProperties>().OriginPlayer);
             DestroyBullet(coll.gameObject);
         }
     }
@@ -163,6 +183,12 @@ public class PlayerMove : NetworkBehaviour {
         Respawn();
     }
 
+    [ClientRpc]
+    public void Rpc_RespawnRandom()
+    {
+        RespawnRand();
+    }
+
     void Respawn()
     {
         if (!isLocalPlayer) return;
@@ -170,31 +196,67 @@ public class PlayerMove : NetworkBehaviour {
         Debug.Log("Respawn player " + PlayerID);
 
         Vector3 respawnPosition = Vector3.zero + new Vector3(1, 0, 0);
+
         switch (PlayerID)
         {
             case 4:
             case 0:
-                respawnPosition = new Vector3(-6, 1, 4);
+                respawnPosition = new Vector3(-27, 1, 17);
                 break;
 
             case 1:
-                respawnPosition = new Vector3(6, 1, -4);
+                respawnPosition = new Vector3(27, 1, -17);
                 break;
 
             case 2:
-                respawnPosition = new Vector3(-6, 1, -4);
+                respawnPosition = new Vector3(-27, 1, -17);
                 break;
 
             case 3:
-                respawnPosition = new Vector3(6, 1, 4);
+                respawnPosition = new Vector3(27, 1, 17);
                 break;
-
-        }
+        } 
 
         transform.position = respawnPosition;
         transform.LookAt(new Vector3(0, transform.position.y, 0));
         transform.Rotate(0, 0, 0);
     }
 
+    void RespawnRand()
+    {
+        if (!isLocalPlayer) return;
+
+        Debug.Log("Respawn player " + PlayerID);
+
+        Vector3 respawnPosition = Vector3.zero + new Vector3(1, 0, 0);
+
+       respawnPosition = respawPoints[UnityEngine.Random.Range(0, 4)];
+
+        transform.position = respawnPosition;
+        transform.LookAt(new Vector3(0, transform.position.y, 0));
+        transform.Rotate(0, 0, 0);
+    }
+
+    void AttributeScoreColor()
+    {
+
+        switch (PlayerID)
+        {
+            case 1:
+                GameObject.Find("ScorePlayer1").GetComponent<Text>().color = Color.blue;
+                GameObject.Find("ScorePlayer2").GetComponent<Text>().color = Color.red;
+
+                break;
+
+            case 2:
+                GameObject.Find("ScorePlayer2").GetComponent<Text>().color = Color.blue;
+                GameObject.Find("ScorePlayer1").GetComponent<Text>().color = Color.red;
+                break;
+
+            default:
+                break;
+        }
+
+    }
 
 }

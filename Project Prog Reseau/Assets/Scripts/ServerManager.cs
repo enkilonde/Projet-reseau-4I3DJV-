@@ -11,6 +11,9 @@ public class ServerManager : NetworkBehaviour
 
     [SyncVar] public int numberOfPlayers;
 
+
+    [SyncVar] public bool serverIsPlayer = false;
+
     Text[] playerScoresDisplay = new Text[2];
 
     Text waitToPlay;
@@ -32,7 +35,7 @@ public class ServerManager : NetworkBehaviour
         {
             Cmd_Cheat();
         }
-        print(numberOfPlayers);
+
 
     }
 

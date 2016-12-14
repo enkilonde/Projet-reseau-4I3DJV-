@@ -2,6 +2,8 @@
 using System.Collections;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
 
 public class Health : NetworkBehaviour
 {
@@ -12,16 +14,23 @@ public class Health : NetworkBehaviour
 
     RectTransform healthBar;
 
-	// Use this for initialization
-	void Awake ()
+    RectTransform localLifeBar;
+
+
+    // Use this for initialization
+    void Awake ()
     {
         healthBar = GameObject.Find("Frontground").GetComponent<RectTransform>();
-	}
-	
-	// Update is called once per frame
-	void Update ()
-    {
+        localLifeBar = transform.Find("LocalPlayerCanvas").Find("LifeFront").GetComponent<RectTransform>();
 
+        transform.Find("LocalPlayerCanvas").SetParent(null);
+
+
+    }
+
+    // Update is called once per frame
+    void Update ()
+    {
         if (!isLocalPlayer) return;
 
 	}
@@ -39,7 +48,9 @@ public class Health : NetworkBehaviour
 
     void OnChangeHealth(int currentHealth)
     {
-        if(isLocalPlayer)
+        localLifeBar.sizeDelta = new Vector2((float)currentHealth / 100.0f, localLifeBar.sizeDelta.y);
+
+        if (isLocalPlayer)
         healthBar.sizeDelta = new Vector2(currentHealth, healthBar.sizeDelta.y);
     }
 
@@ -59,16 +70,28 @@ public class Health : NetworkBehaviour
 
     void PlayerDeath(int OriginPLayer)
     {
-        GameObject[] Players = GameObject.FindGameObjectsWithTag("Player");
-        print("Death of player " + GetComponent<PlayerMove>().PlayerID);
+        print("death of player" + GetComponent<PlayerMove>().PlayerID + " by player " + OriginPLayer);
 
-        FindObjectOfType<ServerManager>().AddScore(OriginPLayer - 1, 1);
-
-        for (int i = 0; i < Players.Length; i++)
+        if(GetComponent<PlayerMove>().PlayerID != OriginPLayer)
         {
-            Players[i].GetComponent<PlayerMove>().Rpc_Respawn();
-            Players[i].GetComponent<Health>().currentHealth = maxHealth;
+            FindObjectOfType<ServerManager>().AddScore(OriginPLayer - 1, 1);
         }
+        else
+        {
+            FindObjectOfType<ServerManager>().AddScore(OriginPLayer - 1, -1);
+        }
+
+        GameObject[] Players = GameObject.FindGameObjectsWithTag("Player");
+        //print("Death of player " + GetComponent<PlayerMove>().PlayerID);
+
+        currentHealth = maxHealth;
+        GetComponent<PlayerMove>().Rpc_RespawnRandom();
+
+        //for (int i = 0; i < Players.Length; i++)
+        //{
+        //    Players[i].GetComponent<PlayerMove>().Rpc_Respawn();
+        //    Players[i].GetComponent<Health>().currentHealth = maxHealth;
+        //}
     }
 
 }
